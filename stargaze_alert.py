@@ -13,7 +13,7 @@ def fetch_48h_astronomy_forecast():
         "latitude": LAT,
         "longitude": LON,
         "hourly": "cloudcover,cloudcover_low,cloudcover_mid,cloudcover_high,relativehumidity_2m,windspeed_10m,visibility",
-        "forecast_days": 2,
+        "forecast_hours": 72,
         "timezone": "America/Chicago"
     }
     
@@ -27,18 +27,20 @@ def evaluate_with_llm(forecast_json):
     
     prompt = f"""
     You are an expert astronomer assistant evaluating night sky viewing conditions.
-    Below is the raw 48-hour hourly weather forecast for Middle Fork River Forest Preserve (Dark Sky Park).
+    CURRENT TIME RIGHT NOW: {now_str}
+    
+    Below is the hourly weather forecast starting from NOW for Middle Fork River Forest Preserve.
     
     FORECAST DATA:
     {forecast_json['hourly']}
 
     INSTRUCTIONS:
-    1. Look specifically at the night hours (roughly 9 PM to 4 AM CDT) over the next 48 hours.
+    1. Look STRICTLY at UPCOMING night hours (roughly 9 PM to 4 AM CDT) over the next 72 hours. IGNORE past hours.
     2. Focus on low cloud cover (<20%), low relative humidity (good transparency), and low wind speed (<10 mph).
-    3. Determine if there is a prime viewing window coming up within the next 48 hours.
+    3. Determine if there is a prime viewing window coming up within the next 72 hours.
     4. Format your output strictly in two parts:
        Line 1 MUST be either "ALERT: YES" or "ALERT: NO".
-       Line 2+ should be a clear, non-technical summary (2-3 sentences) explaining why, including the best time window.
+       Line 2+ should be a clear summary explaining why, including the specific upcoming dates and times.
     """
     
     response = client.models.generate_content(
