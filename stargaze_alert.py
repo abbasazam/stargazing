@@ -70,7 +70,7 @@ def send_alert_email(subject, body):
 
     SENDER_EMAIL = "abbasazam004@gmail.com"  
     SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
-    RECIPIENT_EMAIL = "abbasazam002@gmail.com" 
+    RECIPIENT_EMAIL = "abbasazam004@gmail.com" 
 
     msg = MIMEText(body)
     msg['Subject'] = subject
