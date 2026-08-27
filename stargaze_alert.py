@@ -57,7 +57,7 @@ def send_alert_email(subject, body):
     # Configuration 
     SENDER_EMAIL = "abbasazam004@gmail.com"  # Replace with your Gmail address
     SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
-    RECIPIENT_EMAIL = "abbasazam004@gmail.com"  # Replace with where you want alerts sent
+    RECIPIENT_EMAIL = "abbasazam002@gmail.com"  # Replace with where you want alerts sent
 
     msg = MIMEText(body)
     msg['Subject'] = subject
