@@ -1,1 +1,33 @@
+name: Stargazing Night Sky Check
 
+on:
+  schedule:
+    # Runs daily at 12:00 UTC (7:00 AM CDT / 6:00 AM CST)
+    - cron: '0 12 * * *'
+  # Allows you to manually trigger the script anytime from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  run-stargaze-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests google-genai
+
+      - name: Execute Stargazing Script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+        run: |
+          python stargaze_alert.py
