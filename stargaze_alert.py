@@ -41,7 +41,6 @@ def fetch_72h_astronomy_forecast():
     response.raise_for_status()
     return response.json()
 
-
 def evaluate_with_llm(forecast_json):
     """Passes raw forecast to Gemini to evaluate if conditions and target seasonality 
     permit clear naked-eye visibility of deep-sky targets."""
@@ -74,6 +73,11 @@ def evaluate_with_llm(forecast_json):
        - Visible November through March (Prime window: December–February).
        - May to September: Inaccessible at night.
 
+    STRICT VISIBILITY GOAL (NAKED-EYE HUMAN VISION):
+    We are looking ONLY for exceptional deep-sky viewing windows where:
+    1. The Milky Way galaxy structure and dust lanes are CLEARLY visible as a bright, silvery band to the naked eye (if seasonally above horizon).
+    2. Major naked-eye deep-sky targets (Andromeda Galaxy M31 as a soft oval cloud, and Orion Nebula M42) are detectable to the naked eye or small binoculars.
+
     EVALUATION CRITERIA FOR "ALERT: YES":
     - Seasonality Check: At least ONE major target (Milky Way Core or Andromeda/Major Nebulae) MUST be seasonally well-positioned above the horizon during the dark window for {current_month}.
     - Cloud Cover: Total cloud cover MUST be extremely low (<10-15%), with zero low/mid cloud obstruction during dark hours (9 PM to 4 AM CDT).
@@ -102,6 +106,8 @@ def evaluate_with_llm(forecast_json):
         contents=prompt
     )
     return response.text
+
+
 
 
 def send_email_alerts(subject, body, recipients):
