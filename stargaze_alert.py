@@ -3,10 +3,28 @@ import requests
 from datetime import datetime
 import pytz
 from google import genai
+import smtplib
+from email.mime.text import MIMEText
 
 # Middle Fork River Forest Preserve Coordinates (Penfield, IL)
 LAT = 40.2831
 LON = -87.9714
+
+# --- NOTIFICATION CONFIGURATION ---
+SENDER_EMAIL = "abbasazam004@gmail.com"
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
+
+# Add all recipient emails to this list
+RECIPIENT_EMAILS = [
+    "abbasazam002@gmail.com",
+    # "khadijaazam400@gmail.com",
+    # "chaudhrynabila4@gmail.com",
+]
+
+# Set to True if you want an email even when conditions are BAD.
+# Set to False to only receive emails when conditions are GOOD.
+SEND_IF_CONDITIONS_POOR = True
+
 
 def fetch_72h_astronomy_forecast():
     """Fetches key stargazing weather and lunar metrics for the next 72 hours via Open-Meteo."""
@@ -23,6 +41,7 @@ def fetch_72h_astronomy_forecast():
     response = requests.get(url, params=params)
     response.raise_for_status()
     return response.json()
+
 
 def evaluate_with_llm(forecast_json):
     """Passes the raw 72-hour forecast and lunar data to Gemini to evaluate stargazing conditions."""
@@ -63,23 +82,22 @@ def evaluate_with_llm(forecast_json):
     )
     return response.text
 
-def send_alert_email(subject, body):
-    """Sends an email alert using Python's built-in smtplib."""
-    import smtplib
-    from email.mime.text import MIMEText
 
-    SENDER_EMAIL = "abbasazam004@gmail.com"  
-    SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
-    RECIPIENT_EMAIL = "abbasazam004@gmail.com" 
-
+def send_email_alerts(subject, body, recipients):
+    """Sends email alerts to a list of recipient email addresses via Gmail SMTP."""
     msg = MIMEText(body)
     msg['Subject'] = subject
     msg['From'] = SENDER_EMAIL
-    msg['To'] = RECIPIENT_EMAIL
+    msg['To'] = ", ".join(recipients)
 
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-        server.login(SENDER_EMAIL, SENDER_PASSWORD)
-        server.sendmail(SENDER_EMAIL, RECIPIENT_EMAIL, msg.as_string())
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.sendmail(SENDER_EMAIL, recipients, msg.as_string())
+        print(f"Emails successfully sent to: {', '.join(recipients)}")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
 
 if __name__ == "__main__":
     print("Fetching 72-hour weather and lunar data from Open-Meteo...")
@@ -91,7 +109,28 @@ if __name__ == "__main__":
     print(analysis)
     
     if "ALERT: YES" in analysis:
-        print("\nGood conditions detected! Sending alert...")
-        send_alert_email("✨ Stargazing Alert: Middle Fork Preserve!", analysis)
+        print("\nGood conditions detected! Sending alert emails...")
+        subject = "✨ Stargazing Alert: Prime Sky Conditions Ahead at Middle Fork!"
+        send_email_alerts(subject, analysis, RECIPIENT_EMAILS)
+        
     else:
-        print("\nConditions are sub-optimal. No alert sent.")
+        print("\nConditions are sub-optimal.")
+        if SEND_IF_CONDITIONS_POOR:
+            print("Sending 'Poor Conditions' status update email...")
+            
+            # --- ONE-LINER OPTIONS FOR POOR CONDITIONS ---
+            # You can pick any of these one-liners for the subject line:
+            # Option A: "☁️ Stargazing Update: Poor conditions expected over the next 72 hours."
+            # Option B: "🚫 No Stargazing Alert: High clouds and moon washouts ahead."
+            # Option C: "🔭 Stargazing Update: Sub-optimal skies – save your trip for another night."
+            
+            subject = "☁️ Stargazing Update: Poor conditions expected over the next 72 hours."
+            
+            poor_body = (
+                "NO ALERT: Stargazing conditions over the next 72 hours are sub-optimal "
+                "due to high cloud cover, excessive humidity, or heavy lunar interference.\n\n"
+                "--- Detailed AI Breakdown ---\n"
+                f"{analysis}"
+            )
+            
+            send_email_alerts(subject, poor_body, RECIPIENT_EMAILS)
