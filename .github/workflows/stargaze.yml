@@ -3,7 +3,8 @@ name: Stargazing Night Sky Check
 on:
   schedule:
     # Runs daily at 12:00 UTC (7:00 AM CDT / 6:00 AM CST)
-    - cron: '0 12 * * *'
+    - cron: '11 12 * * *'
+    - cron: '11 19 * * *'
   # Allows you to manually trigger the script anytime from the Actions tab
   workflow_dispatch:
 
