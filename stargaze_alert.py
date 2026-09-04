@@ -18,6 +18,10 @@ SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 RECIPIENT_EMAILS = [
     "abbasazam004@gmail.com",
     "abbasazam002@gmail.com",
+    "kazam8513@stu.d214.org",
+    "khadijaazam400@gmail.com",
+    "chaudhrynabila4@gmail.com",
+    "khadijaschool234@gmail.com",
 ]
 
 # Set to True to get a status update even when conditions fail deep-sky standards.
