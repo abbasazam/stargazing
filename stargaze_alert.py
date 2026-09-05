@@ -16,28 +16,27 @@ SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 
 # List of recipient email addresses
 RECIPIENT_EMAILS = [
-    "abbasazam004@gmail.com",
     "abbasazam002@gmail.com",
-    "kazam8513@stu.d214.org",
-    "khadijaazam400@gmail.com",
-    "chaudhrynabila4@gmail.com",
-    "khadijaschool234@gmail.com",
+    # "friend1@example.com",
 ]
 
-# Set to True to get a status update even when conditions fail deep-sky standards.
-# Set to False to ONLY receive emails when naked-eye deep-sky conditions are PERFECT.
+# Set to True to receive an email status update even if conditions fail.
 SEND_IF_CONDITIONS_POOR = True
 
+# TARGET DATE FOR EVENT
+TARGET_DATE = "2026-09-12"
 
-def fetch_72h_astronomy_forecast():
-    """Fetches key stargazing weather and lunar metrics for the next 72 hours via Open-Meteo."""
+
+def fetch_september_12_forecast():
+    """Fetches weather and lunar metrics specifically for September 12-13, 2026 via Open-Meteo."""
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": LAT,
         "longitude": LON,
-        "hourly": "cloudcover,cloudcover_low,cloudcover_mid,cloudcover_high,relative_humidity_2m,wind_speed_10m,visibility",
+        "start_date": TARGET_DATE,
+        "end_date": "2026-09-13",
+        "hourly": "cloudcover,cloudcover_low,cloudcover_mid,cloudcover_high,relative_humidity_2m,wind_speed_10m,visibility,precipitation_probability",
         "daily": "moonrise,moonset,moon_phase",
-        "forecast_hours": 72,
         "timezone": "America/Chicago"
     }
     
@@ -45,64 +44,44 @@ def fetch_72h_astronomy_forecast():
     response.raise_for_status()
     return response.json()
 
-def evaluate_with_llm(forecast_json):
-    """Passes raw forecast to Gemini to evaluate if conditions and target seasonality 
-    permit clear naked-eye visibility of deep-sky targets."""
+
+def evaluate_sept_12_event(forecast_json):
+    """Passes September 12 forecast data to Gemini to evaluate event conditions."""
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     
-    chicago_tz = pytz.timezone("America/Chicago")
-    now = datetime.now(chicago_tz)
-    now_str = now.strftime("%Y-%m-%d %I:%M %p %Z")
-    current_month = now.strftime("%B")
-    
     prompt = f"""
-    You are an expert astronomer evaluating night sky viewing conditions at Middle Fork River Forest Preserve (Latitude ~40.3° N).
-    CURRENT TIME RIGHT NOW: {now_str} (Current Month: {current_month})
+    You are an expert astronomer evaluating weather conditions specifically for Saturday, September 12, 2026 at Middle Fork River Forest Preserve (Penfield, IL).
     
-    HOURLY WEATHER FORECAST (Next 72 Hours):
-    {forecast_json['hourly']}
+    EVENT SCHEDULE FOR SEPT 12, 2026:
+    1. Cosmic Surfing Session: 6:00 PM – 7:30 PM CDT (Interactive outdoor session outside Interpretive Center).
+    2. Guided Stargazing & Dark Sky Viewing: 8:00 PM – 11:59 PM CDT (Dark Sky Trail stargazing session).
 
-    DAILY LUNAR DATA (Moonrise, Moonset, Moon Phase):
+    HOURLY WEATHER FORECAST FOR SEPT 12–13:
+    {forecast_json.get('hourly', {})}
+
+    DAILY LUNAR DATA (Sept 12):
     {forecast_json.get('daily', {})}
 
-    SEASONAL OBJECT VISIBILITY RULES (Latitude 40.3° N):
-    Evaluate object availability based on the CURRENT MONTH ({current_month}):
-    1. Milky Way Core (Sagittarius/Scorpius region):
-       - Visible ONLY late April through September (Prime window: June–August).
-       - October to March: The Galactic Core is behind the Sun or below the horizon at night. DO NOT promise Milky Way Core visibility in autumn/winter.
-    2. Andromeda Galaxy (M31):
-       - Visible August through February (Prime zenith window: October–December).
-       - May to July: Low on horizon or obscured until late morning twilight.
-    3. Orion Nebula (M42):
-       - Visible November through March (Prime window: December–February).
-       - May to September: Inaccessible at night.
-
-    STRICT VISIBILITY GOAL (NAKED-EYE HUMAN VISION):
-    We are looking ONLY for exceptional deep-sky viewing windows where:
-    1. The Milky Way galaxy structure and dust lanes are CLEARLY visible as a bright, silvery band to the naked eye (if seasonally above horizon).
-    2. Major naked-eye deep-sky targets (Andromeda Galaxy M31 as a soft oval cloud, and Orion Nebula M42) are detectable to the naked eye or small binoculars.
-
     EVALUATION CRITERIA FOR "ALERT: YES":
-    - Seasonality Check: At least ONE major target (Milky Way Core or Andromeda/Major Nebulae) MUST be seasonally well-positioned above the horizon during the dark window for {current_month}.
-    - Cloud Cover: Total cloud cover MUST be extremely low (<10-15%), with zero low/mid cloud obstruction during dark hours (9 PM to 4 AM CDT).
-    - Transparency & Haze: Low relative humidity (<75-80%) and high horizontal visibility (>15,000 meters / 15 km) to prevent atmospheric haze.
-    - Moonlight Interference (CRITICAL):
-      * The Moon MUST be either below the horizon (set) during the midnight hours OR near New Moon (<15% illumination).
-      * IF a bright Moon (>25% illuminated) is above the horizon during the dark night hours, it will wash out the Milky Way core and faint nebulae. You MUST output "ALERT: NO" if this occurs.
-    - Surface Wind: Low surface winds (<10 mph) for atmospheric stability.
+    - Stargazing Dark Hours (8:00 PM – Midnight CDT):
+      * Total cloud cover MUST be <15% with zero low/mid cloud obstruction.
+      * Relative humidity <80% and horizontal visibility >15 km (no heavy haze/fog).
+      * Moon phase <25% or Moon set during dark hours (minimal lunar wash out).
+      * Rain probability near 0%.
+    - Cosmic Surfing Event (6:00 PM – 7:30 PM CDT):
+      * No active rain/thunderstorms and reasonable wind (<15 mph) for comfortable outdoor standing.
 
     INSTRUCTIONS & OUTPUT FORMAT:
-    1. Look STRICTLY at UPCOMING night hours starting AFTER {now_str}.
-    2. Output "ALERT: YES" ONLY if both atmospheric conditions AND target seasonality align for naked-eye deep-sky visibility. Otherwise, output "ALERT: NO".
-    
+    Output "ALERT: YES" if conditions during 8:00 PM - Midnight support clear stargazing. Otherwise, output "ALERT: NO".
+
     Format your output strictly in two parts:
     Line 1 MUST be either "ALERT: YES" or "ALERT: NO".
     Line 2+ should be a clear summary covering:
-       - Seasonal Availability: Which deep-sky targets are actually above the horizon tonight in {current_month}.
-       - Best Viewing Window: Specific date and time range (e.g., "Saturday 10:30 PM – 2:00 AM").
-       - Weather & Transparency Breakdown: Cloud percentages, humidity/haze status, wind.
-       - Lunar Status: Moon phase % and whether the Moon has set during dark hours.
-       - Target Visibility Verdict: Explicit status for Milky Way Core, Andromeda (M31), and nebulae.
+       - Cosmic Surfing Outlook (6:00 PM - 7:30 PM CDT): Temperature, wind, and rain risk for the outdoor gathering.
+       - Stargazing Outlook (8:00 PM - Midnight CDT): Cloud cover breakdown (low/mid/high), relative humidity, visibility, and wind.
+       - Lunar Conditions: Moonrise/moonset times and phase percentage on Sept 12.
+       - Astronomical Targets Verdict: Naked-eye visibility status for the Milky Way Core (setting in South/Southwest) and Andromeda Galaxy (M31).
+       - Recommended Attire/Equipment Tips (e.g., layers, red light flashlight).
     """
     
     response = client.models.generate_content(
@@ -112,10 +91,8 @@ def evaluate_with_llm(forecast_json):
     return response.text
 
 
-
-
 def send_email_alerts(subject, body, recipients):
-    """Sends email alerts to a list of recipient email addresses via Gmail SMTP."""
+    """Sends email alerts to recipient list via Gmail SMTP."""
     msg = MIMEText(body)
     msg['Subject'] = subject
     msg['From'] = SENDER_EMAIL
@@ -131,29 +108,28 @@ def send_email_alerts(subject, body, recipients):
 
 
 if __name__ == "__main__":
-    print("Fetching 72-hour weather and lunar data from Open-Meteo...")
-    raw_forecast = fetch_72h_astronomy_forecast()
+    print(f"Fetching specific weather forecast for {TARGET_DATE} at Middle Fork...")
+    raw_forecast = fetch_september_12_forecast()
     
-    print("Evaluating deep-sky & Milky Way visibility with AI...")
-    analysis = evaluate_with_llm(raw_forecast)
+    print("Evaluating September 12 Cosmic Surfing & Stargazing conditions with AI...")
+    analysis = evaluate_sept_12_event(raw_forecast)
     print("\n--- LLM Response ---")
     print(analysis)
     
     if "ALERT: YES" in analysis:
-        print("\nPrime deep-sky conditions detected! Sending alert emails...")
-        subject = "🌌 Deep-Sky Alert: Milky Way Core & Andromeda Visibility at Middle Fork!"
+        print("\nGreat conditions predicted for September 12! Sending alert emails...")
+        subject = "🌌 EXCELLENT SKY ALERT: September 12 Stargazing & Cosmic Surfing Event at Middle Fork!"
         send_email_alerts(subject, analysis, RECIPIENT_EMAILS)
         
     else:
-        print("\nConditions do not meet deep-sky / Milky Way standards.")
+        print("\nConditions for September 12 are sub-optimal.")
         if SEND_IF_CONDITIONS_POOR:
-            print("Sending 'Sub-Optimal Conditions' status email...")
-            
-            subject = "☁️ Stargazing Update: Milky Way / Deep Sky Not Recommended Over Next 72h"
+            print("Sending September 12 Status Email...")
+            subject = "☁️ Sept 12 Event Update: Cloud/Weather Advisory for Middle Fork"
             
             poor_body = (
-                "NO ALERT: Conditions over the next 72 hours will NOT permit clear viewing of "
-                "the Milky Way core, Andromeda Galaxy, or faint nebulae.\n\n"
+                "SEPTEMBER 12 EVENT WEATHER UPDATE:\n"
+                "Current forecast indicates sub-optimal sky conditions for deep-sky viewing during the Sept 12 event.\n\n"
                 "--- AI Breakdown ---\n"
                 f"{analysis}"
             )
