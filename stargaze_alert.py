@@ -16,8 +16,10 @@ SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 
 # List of recipient email addresses
 RECIPIENT_EMAILS = [
-    "abbasazam004@gmail.com",
-    # "friend1@example.com",
+    "abbasazam002@gmail.com",
+    "kazam8513@stu.d214.org",
+    "khadijaazam400@gmail.com",
+    "chaudhrynabila4@gmail.com",
 ]
 
 # Set to True to receive an email status update even if conditions fail.
