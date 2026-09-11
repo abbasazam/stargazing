@@ -16,7 +16,7 @@ SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 
 # List of recipient email addresses
 RECIPIENT_EMAILS = [
-    "abbasazam002@gmail.com",
+    "abbasazam004@gmail.com",
     # "friend1@example.com",
 ]
 
@@ -46,11 +46,14 @@ def fetch_september_12_forecast():
 
 
 def evaluate_sept_12_event(forecast_json):
-    """Passes September 12 forecast data to Gemini to evaluate event conditions."""
+    """Passes September 12 forecast data to Gemini to evaluate event conditions and Bortle scale impact."""
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     
     prompt = f"""
     You are an expert astronomer evaluating weather conditions specifically for Saturday, September 12, 2026 at Middle Fork River Forest Preserve (Penfield, IL).
+    
+    LOCATION METRICS:
+    - Base Site Rating: International Dark Sky Park (Bortle Class 3 / Class 2 Transition zone).
     
     EVENT SCHEDULE FOR SEPT 12, 2026:
     1. Cosmic Surfing Session: 6:00 PM – 7:30 PM CDT (Interactive outdoor session outside Interpretive Center).
@@ -77,6 +80,9 @@ def evaluate_sept_12_event(forecast_json):
     Format your output strictly in two parts:
     Line 1 MUST be either "ALERT: YES" or "ALERT: NO".
     Line 2+ should be a clear summary covering:
+       - Expected Dark Sky Rating (Bortle Scale 1-9):
+         * State the site's natural base rating (Bortle 3 / Rural-Suburban Transition, dropping toward Bortle 2 on pristine clear nights).
+         * Indicate if atmospheric haze, clouds, or moonlight on Sept 12 will temporarily degrade the perceived sky quality (e.g., "Effective Bortle 3 due to low haze" or "Degraded to Effective Bortle 5 due to cloud cover/lunar glow").
        - Cosmic Surfing Outlook (6:00 PM - 7:30 PM CDT): Temperature, wind, and rain risk for the outdoor gathering.
        - Stargazing Outlook (8:00 PM - Midnight CDT): Cloud cover breakdown (low/mid/high), relative humidity, visibility, and wind.
        - Lunar Conditions: Moonrise/moonset times and phase percentage on Sept 12.
