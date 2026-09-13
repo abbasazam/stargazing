@@ -17,28 +17,22 @@ SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 # List of recipient email addresses
 RECIPIENT_EMAILS = [
     "abbasazam002@gmail.com",
-    "kazam8513@stu.d214.org",
-    "khadijaazam400@gmail.com",
-    "chaudhrynabila4@gmail.com",
+    # "friend1@example.com",
 ]
 
-# Set to True to receive an email status update even if conditions fail.
+# Set to True to receive status emails even if upcoming conditions do NOT exceed Sept 4 standards.
 SEND_IF_CONDITIONS_POOR = True
 
-# TARGET DATE FOR EVENT
-TARGET_DATE = "2026-09-12"
 
-
-def fetch_september_12_forecast():
-    """Fetches weather and lunar metrics specifically for September 12-13, 2026 via Open-Meteo."""
+def fetch_72h_astronomy_forecast():
+    """Fetches weather and lunar metrics for the next 72 hours via Open-Meteo."""
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": LAT,
         "longitude": LON,
-        "start_date": TARGET_DATE,
-        "end_date": "2026-09-13",
         "hourly": "cloudcover,cloudcover_low,cloudcover_mid,cloudcover_high,relative_humidity_2m,wind_speed_10m,visibility,precipitation_probability",
         "daily": "moonrise,moonset,moon_phase",
+        "forecast_hours": 72,
         "timezone": "America/Chicago"
     }
     
@@ -47,49 +41,66 @@ def fetch_september_12_forecast():
     return response.json()
 
 
-def evaluate_sept_12_event(forecast_json):
-    """Passes September 12 forecast data to Gemini to evaluate event conditions and Bortle scale impact."""
+def evaluate_against_sept4_baseline(forecast_json):
+    """Compares the upcoming 72-hour forecast against the historic Sept 4, 2026 baseline conditions."""
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     
+    chicago_tz = pytz.timezone("America/Chicago")
+    now = datetime.now(chicago_tz)
+    now_str = now.strftime("%Y-%m-%d %I:%M %p %Z")
+    current_month = now.strftime("%B")
+    
     prompt = f"""
-    You are an expert astronomer evaluating weather conditions specifically for Saturday, September 12, 2026 at Middle Fork River Forest Preserve (Penfield, IL).
+    You are an expert astronomer evaluating night sky viewing conditions at Middle Fork River Forest Preserve (Latitude ~40.3° N, Bortle 3 Dark Sky Park).
+    CURRENT EXECUTION TIME: {now_str} (Current Month: {current_month})
+
+    HISTORIC BASELINE BENCHMARK (SEPTEMBER 4, 2026 VISIT):
+    The user visited the preserve on September 4, 2026 (9:00 PM – 11:45 PM CDT).
+    Sept 4 Baseline Conditions:
+    - Cloud Cover: Clear / ~0% total cloud cover.
+    - Humidity: 82% – 86% (Moderate-to-high atmospheric moisture/haze, dew formation).
+    - Wind: Light (4 mph).
+    - Perceived Sky Quality: Good cloudless sky, but limited transparency due to high surface/atmospheric humidity.
+
+    UPCOMING 72-HOUR FORECAST DATA:
+    Hourly Data: {forecast_json.get('hourly', {})}
+    Daily Lunar Data: {forecast_json.get('daily', {})}
+
+    EVALUATION BENCHMARK FOR "ALERT: YES":
+    The user wants to go ONLY if conditions are SIGNIFICANTLY BETTER than September 4.
     
-    LOCATION METRICS:
-    - Base Site Rating: International Dark Sky Park (Bortle Class 3 / Class 2 Transition zone).
-    
-    EVENT SCHEDULE FOR SEPT 12, 2026:
-    1. Cosmic Surfing Session: 6:00 PM – 7:30 PM CDT (Interactive outdoor session outside Interpretive Center).
-    2. Guided Stargazing & Dark Sky Viewing: 8:00 PM – 11:59 PM CDT (Dark Sky Trail stargazing session).
+    Criteria for "ALERT: YES":
+    1. Cloud Cover: MUST be pristine (<5% cloud cover, zero low/mid clouds) during dark night hours (9:00 PM – 4:00 AM CDT).
+    2. Atmospheric Transparency (CRITICAL DIFFERENCE):
+       - Humidity MUST be lower than Sept 4 (<70% relative humidity, ideally <60%) to prevent ground haze and damp air scattering light.
+       - Horizontal Visibility MUST be >20,000 meters (>20 km).
+    3. Moonlight Interference:
+       - The Moon MUST be either set during dark hours OR near New Moon (<15% illuminated). Bright moon wash-out makes conditions worse than Sept 4.
+    4. Target Seasonality Check ({current_month}):
+       - At least one primary target (Milky Way Core, Andromeda Galaxy M31, or Orion Nebula M42) must be well-positioned above the horizon.
 
-    HOURLY WEATHER FORECAST FOR SEPT 12–13:
-    {forecast_json.get('hourly', {})}
-
-    DAILY LUNAR DATA (Sept 12):
-    {forecast_json.get('daily', {})}
-
-    EVALUATION CRITERIA FOR "ALERT: YES":
-    - Stargazing Dark Hours (8:00 PM – Midnight CDT):
-      * Total cloud cover MUST be <15% with zero low/mid cloud obstruction.
-      * Relative humidity <80% and horizontal visibility >15 km (no heavy haze/fog).
-      * Moon phase <25% or Moon set during dark hours (minimal lunar wash out).
-      * Rain probability near 0%.
-    - Cosmic Surfing Event (6:00 PM – 7:30 PM CDT):
-      * No active rain/thunderstorms and reasonable wind (<15 mph) for comfortable outdoor standing.
+    Criteria for "ALERT: NO":
+    - If total cloud cover is >= 10%.
+    - If humidity is >= 75% (equal to or worse atmospheric haze than Sept 4).
+    - If Moon illumination > 20% is present in the sky during dark hours.
+    - If overall sky viewing quality is merely equal to or worse than September 4.
 
     INSTRUCTIONS & OUTPUT FORMAT:
-    Output "ALERT: YES" if conditions during 8:00 PM - Midnight support clear stargazing. Otherwise, output "ALERT: NO".
+    Output "ALERT: YES" ONLY if an upcoming night window in the next 72 hours is strictly superior to the September 4 benchmark. Otherwise, output "ALERT: NO".
 
-    Format your output strictly in two parts:
+    Format your output strictly as follows:
     Line 1 MUST be either "ALERT: YES" or "ALERT: NO".
-    Line 2+ should be a clear summary covering:
-       - Expected Dark Sky Rating (Bortle Scale 1-9):
-         * State the site's natural base rating (Bortle 3 / Rural-Suburban Transition, dropping toward Bortle 2 on pristine clear nights).
-         * Indicate if atmospheric haze, clouds, or moonlight on Sept 12 will temporarily degrade the perceived sky quality (e.g., "Effective Bortle 3 due to low haze" or "Degraded to Effective Bortle 5 due to cloud cover/lunar glow").
-       - Cosmic Surfing Outlook (6:00 PM - 7:30 PM CDT): Temperature, wind, and rain risk for the outdoor gathering.
-       - Stargazing Outlook (8:00 PM - Midnight CDT): Cloud cover breakdown (low/mid/high), relative humidity, visibility, and wind.
-       - Lunar Conditions: Moonrise/moonset times and phase percentage on Sept 12.
-       - Astronomical Targets Verdict: Naked-eye visibility status for the Milky Way Core (setting in South/Southwest) and Andromeda Galaxy (M31).
-       - Recommended Attire/Equipment Tips (e.g., layers, red light flashlight).
+    
+    Line 2+: Provide a clear breakdown covering:
+       - Superiority Verdict: Explicitly state whether upcoming conditions beat Sept 4 and why.
+       - Best Viewing Window: Date and exact hours (e.g., "Monday Sept 14, 10:00 PM – 2:00 AM CDT").
+       - Direct Comparison vs Sept 4:
+         * Cloud Cover: Upcoming % vs Sept 4 (~0%).
+         * Transparency & Humidity: Upcoming % vs Sept 4 (82-86%). Highlight if air is drier/clearer.
+         * Effective Bortle Class: Baseline Bortle 3 vs Expected Effective Bortle Class for the night.
+         * Lunar Phase & Timing: Moon illumination % and horizon status.
+       - Deep-Sky Object Status: Visibility of Milky Way Core, Andromeda (M31), and major nebulae.
+       - Detailed Reasoning: Exhaustive breakdown of why this alert (YES or NO) was triggered.
     """
     
     response = client.models.generate_content(
@@ -116,29 +127,29 @@ def send_email_alerts(subject, body, recipients):
 
 
 if __name__ == "__main__":
-    print(f"Fetching specific weather forecast for {TARGET_DATE} at Middle Fork...")
-    raw_forecast = fetch_september_12_forecast()
+    print("Fetching 72-hour weather and lunar forecast from Open-Meteo...")
+    raw_forecast = fetch_72h_astronomy_forecast()
     
-    print("Evaluating September 12 Cosmic Surfing & Stargazing conditions with AI...")
-    analysis = evaluate_sept_12_event(raw_forecast)
+    print("Comparing upcoming forecast against September 4 baseline via AI...")
+    analysis = evaluate_against_sept4_baseline(raw_forecast)
     print("\n--- LLM Response ---")
     print(analysis)
     
     if "ALERT: YES" in analysis:
-        print("\nGreat conditions predicted for September 12! Sending alert emails...")
-        subject = "🌌 EXCELLENT SKY ALERT: September 12 Stargazing & Cosmic Surfing Event at Middle Fork!"
+        print("\nSuperior conditions detected (Better than Sept 4)! Sending alert emails...")
+        subject = "🌟 PRISTINE SKY ALERT: Exceptional Stargazing Window (Beats Sept 4 Baseline)!"
         send_email_alerts(subject, analysis, RECIPIENT_EMAILS)
         
     else:
-        print("\nConditions for September 12 are sub-optimal.")
+        print("\nConditions do not exceed the September 4 quality threshold.")
         if SEND_IF_CONDITIONS_POOR:
-            print("Sending September 12 Status Email...")
-            subject = "☁️ Sept 12 Event Update: Cloud/Weather Advisory for Middle Fork"
+            print("Sending 'Sub-Optimal vs Sept 4' status email...")
+            subject = "☁️ Stargazing Update: Upcoming 72h Does Not Exceed Sept 4 Quality"
             
             poor_body = (
-                "SEPTEMBER 12 EVENT WEATHER UPDATE:\n"
-                "Current forecast indicates sub-optimal sky conditions for deep-sky viewing during the Sept 12 event.\n\n"
-                "--- AI Breakdown ---\n"
+                "NO ALERT (SEPTEMBER 4 BENCHMARK NOT MET):\n"
+                "The upcoming 72-hour forecast does not offer conditions significantly better than your September 4 visit.\n\n"
+                "--- AI Comparison & Reasoning ---\n"
                 f"{analysis}"
             )
             
